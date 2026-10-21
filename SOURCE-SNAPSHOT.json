@@ -1,0 +1,7 @@
+{
+  "version": "1.24.5",
+  "build": 1,
+  "platform": "iPadOS",
+  "standaloneSourceSnapshot": true,
+  "sharedCode": "Copied into each repository so neither requires access to the other repository"
+}

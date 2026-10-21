@@ -1,0 +1,37 @@
+{
+  "architecture": "native-media/control-only-javascript",
+  "sourceEvidence": "Independent local protocol interoperability investigation; original private workspace paths omitted from public source export.",
+  "upstream": [
+    "werift 0.25.0",
+    "crypto-browserify and bundled dependencies; see THIRD_PARTY_NOTICES.txt"
+  ],
+  "controlOnly": [
+    "Direct FlatBuffer signaling and stream-control messages",
+    "ICE/STUN/DTLS fingerprint validation",
+    "SCTP",
+    "SRTCP authentication and feedback"
+  ],
+  "removed": [
+    "JavaScript SRTP RTP context/session",
+    "JavaScript SRTP media encrypt/decrypt",
+    "HEVC parser/depayloader",
+    "packet reorder buffer",
+    "dependent-frame/keyframe waiting state",
+    "media frame/audio output callbacks"
+  ],
+  "keys": "DTLS EXTRACTOR-dtls_srtp remoteKey/remoteSalt delivered in memory to Swift; never logged or persisted",
+  "negotiatedProfiles": [
+    {
+      "wire": 1,
+      "name": "SRTP_AES128_CM_HMAC_SHA1_80",
+      "keyBytes": 16,
+      "saltBytes": 14
+    }
+  ],
+  "resourceSHA256": {
+    "RemoteSession.swift": "59f35d6655cece71be64b3ecf575958c21f790893dc766e7d7ed35a0b73ab325",
+    "SessionBootstrap.js": "63e80421f23181f05ba71b49a549c7f64a99c36949f9654eeaa5629d28b3741d",
+    "SessionVendor.js": "eec6d3ac4762310b76de0d8c5d238707560849b68a101fd0082cf96da5a1ddf3",
+    "THIRD_PARTY_NOTICES.txt": "3a5091833b9b78f39ac5da15412cd9607bcb944fa28081643433f7281391bf70"
+  }
+}
