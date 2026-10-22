@@ -107,7 +107,7 @@ struct CompanionScreen:View {
             HStack(spacing:7) {
                 Image("ResolveScopesMark").resizable().interpolation(.high).frame(width:18,height:18).accessibilityLabel("ResolveScopes 로고")
                 Text("ResolveScopes").font(.system(size:15,weight:.semibold))
-                Text("1.24.6").font(.system(size:9,design:.monospaced)).foregroundStyle(MonitorChrome.secondary)
+                Text("1.25.0").font(.system(size:9,design:.monospaced)).foregroundStyle(MonitorChrome.secondary)
             }
             Divider().frame(height:18).padding(.horizontal,6)
             ViewThatFits(in:.horizontal) {

@@ -4,5 +4,5 @@
   "standaloneSourceSnapshot": true,
   "sharedCode": "Copied into each repository so neither requires access to the other repository",
   "initialSnapshotVersion": "1.24.5",
-  "currentVersion": "1.24.6"
+  "currentVersion": "1.25.0"
 }

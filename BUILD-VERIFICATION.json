@@ -1,13 +1,85 @@
 {
-  "sourceVersion": "1.24.6",
-  "date": "2026-10-22",
-  "build": "iPad Simulator Release passed",
+  "sourceVersion": "1.25.0",
+  "date": "2026-10-23",
+  "build": "Physical iPad Release passed",
+  "physicalDeviceInstall": "passed",
+  "physicalDeviceLaunch": "passed; explicit synthetic quality benchmark",
+  "deviceClass": "iPad Pro M4",
   "personalSigningTeam": "not included",
   "tests": {
     "layoutChecks": 48,
-    "failures": 0
+    "localAnalyzer": "passed: range/format/metadata/normalization, GPU numerical equivalence, one-pixel highlight preservation, per-view raster and paused-camera reraster",
+    "sharedGuideTests": "2 new geometry/readability checks passed in Mac suite against identical source"
   },
   "sharedSourcesMatchMac": true,
-  "physicalDeviceRetest": false,
-  "installedDehancerBackendIncluded": false
+  "qualityBenchmark": {
+    "measurement": "analysis and CGImage/guide creation only; not stream FPS or end-to-end latency",
+    "results": [
+      {
+        "gpuTracePixels": 5760000,
+        "iterations": 15,
+        "maxMS": 36.43795833340846,
+        "meanStagesMS": {
+          "conversion": 0.2831500033304716,
+          "gpuFullRaster": 25.387288890002917,
+          "imagesAndGuides": 5.2929500011183945,
+          "sampledStatisticsPreview": 2.4540555566394078
+        },
+        "medianMS": 32.6539583329577,
+        "numericSampleWidth": 320,
+        "p95MS": 36.43795833340846
+      },
+      {
+        "gpuTracePixels": 5760000,
+        "iterations": 15,
+        "maxMS": 34.95037500397302,
+        "meanStagesMS": {
+          "conversion": 0.48511944575390464,
+          "gpuFullRaster": 24.530783334436514,
+          "imagesAndGuides": 4.617763886926696,
+          "sampledStatisticsPreview": 5.011247221652108
+        },
+        "medianMS": 34.578499995404854,
+        "numericSampleWidth": 480,
+        "p95MS": 34.95037500397302
+      },
+      {
+        "gpuTracePixels": 5760000,
+        "iterations": 15,
+        "maxMS": 39.21254166925792,
+        "meanStagesMS": {
+          "conversion": 0.7991666653348755,
+          "gpuFullRaster": 24.45946666703094,
+          "imagesAndGuides": 4.627369446097874,
+          "sampledStatisticsPreview": 9.084419442418342
+        },
+        "medianMS": 38.96595834521577,
+        "numericSampleWidth": 640,
+        "p95MS": 39.21254166925792
+      },
+      {
+        "gpuTracePixels": 5760000,
+        "iterations": 15,
+        "maxMS": 52.51779165701009,
+        "meanStagesMS": {
+          "conversion": 1.7670305552504337,
+          "gpuFullRaster": 24.83141110957755,
+          "imagesAndGuides": 4.6336972241988414,
+          "sampledStatisticsPreview": 20.99561388604343
+        },
+        "medianMS": 52.21349999192171,
+        "numericSampleWidth": 960,
+        "p95MS": 52.51779165701009
+      }
+    ],
+    "scopeRaster": "GPU full received3200x1800;1536x768 waveform/parade,1024x1024 vector",
+    "source": "3200x1800 synthetic YUV420 10-bit video-range"
+  },
+  "physicalRenderedImages": "Inspected newly exported vectorscope and RGB Parade images from device: new targets/rings/skin line, 10 IRE marks and RGB separators present",
+  "appBinarySHA256": "d9d9ef9a8ca0ca53c1037441c7d8c697f0aac4651d9c553567b028808dc0d659",
+  "limits": [
+    "Synthetic 3200x1800 10-bit quality benchmark, not live Remote Monitor FPS or end-to-end latency",
+    "Mac paired-Sender curve meter and installed macOS Dehancer backend not included",
+    "Native transport and video pacing unchanged"
+  ]
 }
