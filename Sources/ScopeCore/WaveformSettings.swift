@@ -127,6 +127,14 @@ public struct WaveformSettings:Codable,Equatable,Sendable {
             }
         }
         let b=signalBounds
+        if effectiveScale == .ire || effectiveScale == .percentage {
+            let first=Int(ceil(b.lowerBound*10-1e-9)),last=Int(floor(b.upperBound*10+1e-9))
+            guard first<=last else {return []}
+            return (first...last).map { i in
+                let signal=Double(i)/10
+                return WaveformTick(signal:signal,value:value(signal:signal,levels:levels),label:label(signal:signal,levels:levels))
+            }
+        }
         return (0...5).map { i in
             let signal=b.lowerBound+(b.upperBound-b.lowerBound)*Double(i)/5
             return WaveformTick(signal:signal,value:value(signal:signal,levels:levels),label:label(signal:signal,levels:levels))

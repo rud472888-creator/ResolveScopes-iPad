@@ -1,6 +1,6 @@
 # ResolveScopes for iPad
 
-Resolve Remote Monitoring 영상을 직접 수신하고 iPad에서 영상 스코프를 계산하는 앱입니다. 현재 소스 버전은 **1.24.5**입니다. Mac 앱 없이 Resolve에 직접 연결합니다.
+Resolve Remote Monitoring 영상을 직접 수신하고 iPad에서 영상 스코프를 계산하는 앱입니다. 현재 소스 버전은 **1.24.6**입니다. Mac 앱 없이 Resolve에 직접 연결합니다.
 
 - Waveform, RGB Parade, Vectorscope, False Color, Source 표시
 - 전체 수신 픽셀을 사용하는 GPU 스코프와 False Color

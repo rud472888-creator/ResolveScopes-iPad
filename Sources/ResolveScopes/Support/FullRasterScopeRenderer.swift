@@ -84,7 +84,7 @@ final class FullRasterScopeRenderer:@unchecked Sendable {
         return !w.signalLowPass && w.traceLowPassRadius == 0 && !w.smoothTrace && !w.enhanceEdges && !w.enhancedRender && !w.highlightEdges
     }
     func render(frame:VideoFrame,settings:ScopeSettings,waveform:WaveformSettings,vector:VectorScopeSettings,
-                selection:ScopeSelectionMask?,requests:[FullRasterScopeKind:FullRasterScopeRequest],falseColor:FalseColorMapping = .defaultIRE,falseColorZone:Double?=nil,smoothFalseColor:Bool=true,presentation:FalseColorPresentation?=nil) throws -> FullRasterScopeRender {
+                selection:ScopeSelectionMask?,requests:[FullRasterScopeKind:FullRasterScopeRequest],falseColor:FalseColorMapping = .defaultIRE,falseColorZone:Double?=nil,smoothFalseColor:Bool=false,presentation:FalseColorPresentation?=nil) throws -> FullRasterScopeRender {
         guard frame.isValid,frame.width*frame.height<=64_000_000 else {throw Failure.allocation}
         if let selection,!selection.isValid {throw Failure.invalidMask}
         lock.lock();defer{lock.unlock()}
@@ -96,14 +96,14 @@ final class FullRasterScopeRenderer:@unchecked Sendable {
     }
     /// Input is GPU-produced encoded Float32 RGBA; no CPU full-frame conversion.
     func render(input:MTLBuffer,width:Int,height:Int,settings:ScopeSettings,waveform:WaveformSettings,vector:VectorScopeSettings,
-                selection:ScopeSelectionMask?=nil,requests:[FullRasterScopeKind:FullRasterScopeRequest],falseColor:FalseColorMapping = .defaultIRE,falseColorZone:Double?=nil,smoothFalseColor:Bool=true,presentation:FalseColorPresentation?=nil) throws -> FullRasterScopeRender {
+                selection:ScopeSelectionMask?=nil,requests:[FullRasterScopeKind:FullRasterScopeRequest],falseColor:FalseColorMapping = .defaultIRE,falseColorZone:Double?=nil,smoothFalseColor:Bool=false,presentation:FalseColorPresentation?=nil) throws -> FullRasterScopeRender {
         guard width>0,height>0,width<=16384,height<=16384,width*height<=64_000_000,input.length>=width*height*16 else {throw Failure.allocation}
         if let selection,!selection.isValid {throw Failure.invalidMask}
         lock.lock();defer{lock.unlock()}
         return try renderLocked(input:input,width:width,height:height,settings:settings,waveform:waveform,vector:vector,selection:selection,requests:requests,falseColor:falseColor,falseColorZone:falseColorZone,smoothFalseColor:smoothFalseColor,presentation:presentation)
     }
     private func renderLocked(input:MTLBuffer,width:Int,height:Int,settings:ScopeSettings,waveform:WaveformSettings,vector:VectorScopeSettings,
-                              selection:ScopeSelectionMask?,requests:[FullRasterScopeKind:FullRasterScopeRequest],falseColor:FalseColorMapping = .defaultIRE,falseColorZone:Double?=nil,smoothFalseColor:Bool=true,presentation:FalseColorPresentation?=nil) throws -> FullRasterScopeRender {
+                              selection:ScopeSelectionMask?,requests:[FullRasterScopeKind:FullRasterScopeRequest],falseColor:FalseColorMapping = .defaultIRE,falseColorZone:Double?=nil,smoothFalseColor:Bool=false,presentation:FalseColorPresentation?=nil) throws -> FullRasterScopeRender {
         let started=ProcessInfo.processInfo.systemUptime
         guard let command=queue.makeCommandBuffer() else {throw Failure.allocation}
         let validMask=selection?.isValid == true ? selection:nil
@@ -391,7 +391,18 @@ final class FullRasterScopeRenderer:@unchecked Sendable {
         if(p.x>=output.get_width()||p.y>=output.get_height())return;
         float4 values=float4(bins[p.y*output.get_width()+p.x])/exposure.y;
         float3 c=0;
-        if(u.style.x>0)c=values.rgb*exposure.z;
+        if(u.style.x>0) {
+            // Optical reconstruction only. Keep the measured coordinates and
+            // density independent of this display filter; no temporal history.
+            float3 trace=values.rgb*.72f;
+            int2 last=int2(output.get_width()-1,output.get_height()-1);
+            for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++) {
+                if(x==0&&y==0)continue;
+                uint2 q=uint2(clamp(int2(p)+int2(x,y),int2(0),last));
+                trace+=float3(bins[q.y*output.get_width()+q.x].xyz)/exposure.y*((x==0||y==0)?.06f:.01f);
+            }
+            c=trace*exposure.z;
+        }
         else {int channels=int(u.signal.z)==0?1:((int(u.signal.z)==3||int(u.signal.z)==5)?4:3);for(int i=0;i<channels;i++)c+=values[i]*channelTint(i,u);}
         float peak=max(c.r,max(c.g,c.b));
         float3 result;

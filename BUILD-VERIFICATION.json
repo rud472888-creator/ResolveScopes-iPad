@@ -1,17 +1,13 @@
 {
-  "sourceVersion": "1.24.5",
+  "sourceVersion": "1.24.6",
   "date": "2026-10-22",
-  "standaloneRepository": true,
-  "build": "passed",
-  "buildCommand": "xcodebuild -project iPadCompanion/ResolveScopesPad.xcodeproj -scheme ResolveScopesPad -configuration Release -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build",
+  "build": "iPad Simulator Release passed",
+  "personalSigningTeam": "not included",
   "tests": {
     "layoutChecks": 48,
     "failures": 0
   },
-  "projectReferencesVerified": 45,
-  "personalSigningTeamRemoved": true,
-  "sourceExportScan": {
-    "credentialsOrPersonalSigningDataDetected": false
-  },
-  "runtimeRetest": false
+  "sharedSourcesMatchMac": true,
+  "physicalDeviceRetest": false,
+  "installedDehancerBackendIncluded": false
 }

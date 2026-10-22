@@ -197,6 +197,14 @@ public enum AdvancedScopes {
         return (abs(delta)<=tolerance,tolerance>0 ? advClamp(delta/tolerance,-1,1) : 0)
     }
 
+    /// Hue deviation only: redward is negative, yellowward is positive in both
+    /// the HSV and Cb/Cr skin qualifiers. This is not an exposure classification.
+    public static func skinOverlayColor(deviation:Double)->SIMD3<Double> {
+        if deviation < -1.0/3.0 {return SIMD3(1,0.08,0.04)}
+        if deviation > 1.0/3.0 {return SIMD3(0.08,1,0.12)}
+        return SIMD3(1,0.9,0)
+    }
+
     /// Full received-raster key, evaluated before scope sampling. Used to
     /// intersect the optional skin key with a general Color Key exactly once.
     public static func skinSelectionMask(frame:VideoFrame,settings:ScopeSettings,advanced:AdvancedScopeSettings,intersecting:ScopeSelectionMask?=nil)->ScopeSelectionMask {
@@ -304,7 +312,7 @@ public enum AdvancedScopes {
                     let gray = advClamp(luma)*0.35
                     if selected {
                         skinMask[p]=255
-                        let overlay: SIMD3<Double> = selection.deviation < -1.0/3.0 ? SIMD3(0.2,0.55,1) : (selection.deviation > 1.0/3.0 ? SIMD3(1,0.25,0.15) : SIMD3(0.15,1,0.3))
+                        let overlay: SIMD3<Double> = skinOverlayColor(deviation:selection.deviation)
                         skinBytes[o]=advByte(advClamp(rgb.x)*(1-skinOpacity)+overlay.x*skinOpacity)
                         skinBytes[o+1]=advByte(advClamp(rgb.y)*(1-skinOpacity)+overlay.y*skinOpacity)
                         skinBytes[o+2]=advByte(advClamp(rgb.z)*(1-skinOpacity)+overlay.z*skinOpacity)
