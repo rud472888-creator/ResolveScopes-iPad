@@ -1,51 +1,249 @@
-# ResolveScopes for iPad
+# ResolveScopes iPad
 
-Resolve Remote Monitoring 영상을 직접 수신하고 iPad에서 영상 스코프를 계산하는 앱입니다. 현재 소스 버전은 **1.24.6**입니다. Mac 앱 없이 Resolve에 직접 연결합니다.
+**DaVinci Resolve의 영상을 iPad에서 보면서 밝기, 색 균형, 채도를 확인하는 영상 모니터링·스코프 앱입니다.**
 
-- Waveform, RGB Parade, Vectorscope, False Color, Source 표시
-- 전체 수신 픽셀을 사용하는 GPU 스코프와 False Color
-- 균등 그리드 또는 큰 패널 + 아래 작은 2·3·4개, Solo·전체 화면
-- False Color 그레이바 직접 터치/드래그, 10 IRE 눈금과 구간 폭 조절
-- 공통 Signal Planes 앱 아이콘과 중성 회색 UI
+현재 소스 버전은 **1.24.6**입니다.
 
-## 빌드
+Resolve의 Remote Monitoring에 직접 연결해 영상을 수신하고, iPad에서 Waveform, RGB Parade, Vectorscope, False Color를 계산합니다. 영상과 스코프를 나란히 보거나, 필요한 패널을 크게 띄워 장면을 살펴볼 수 있습니다.
 
-macOS와 Xcode가 필요하며, 배포 대상은 iPadOS 16 이상입니다. 현재 소스는 Xcode 27.1에서 검증했습니다.
+색보정 중에는 RGB 채널의 균형을, 노출을 살필 때는 밝기의 분포와 특정 IRE 구간을 확인할 수 있습니다. 연결에 필요한 것은 Remote Monitoring을 시작한 Resolve 송신 환경과 iPad 앱입니다.
 
-1. `iPadCompanion/ResolveScopesPad.xcodeproj`를 엽니다.
-2. **ResolveScopesPad** scheme을 선택합니다.
-3. 실기기에서는 Signing & Capabilities에서 본인의 Team을 선택하고, 필요하면 Bundle Identifier를 바꿉니다.
-4. iPad 또는 iPad Simulator를 선택하고 Run합니다.
+## 한 화면에서 확인하는 다섯 가지 패널
 
-서명 없이 시뮬레이터용으로 컴파일하려면:
+| 패널 | 보여주는 정보 | 활용 |
+| --- | --- | --- |
+| **Source** | Resolve에서 수신한 영상 | 장면을 보면서 스코프의 분포와 비교합니다. |
+| **Waveform** | 화면의 가로 위치에 따른 신호 레벨 | 어두운 부분과 밝은 부분이 어디에 분포하는지 확인합니다. |
+| **RGB Parade** | R·G·B 채널을 각각 분리한 파형 | 채널 간 밝기 차이와 색 균형을 살펴봅니다. |
+| **Vectorscope** | 색차에 따른 색상·채도 분포 | 색이 어느 방향으로 치우치는지, 채도가 얼마나 퍼져 있는지 확인합니다. |
+| **False Color** | 밝기 구간을 색으로 바꾼 영상 | 특정 밝기 범위에 해당하는 영역을 화면에서 찾습니다. |
+
+기본 배치는 Source, Waveform, RGB Parade, Vectorscope, False Color 순서입니다. 각 패널의 제목을 눌러 표시할 종류를 바꿀 수 있으며, 같은 종류를 여러 패널에 배치할 수도 있습니다. 예를 들어 Waveform을 두 곳에 띄워 서로 다른 배율로 살펴볼 수 있습니다.
+
+Waveform 패널에서는 다음 모드를 선택할 수 있습니다. 별도의 RGB Parade 패널은 R·G·B 분리 표시를 유지합니다.
+
+- **Luma**: 밝기 신호 Y′
+- **RGB Overlay**: R·G·B를 한 영역에 겹쳐 표시
+- **YRGB Overlay**: Y′와 R·G·B를 겹쳐 표시
+- **RGB Parade**: R·G·B를 나란히 분리
+- **YRGB Parade**: Y′와 R·G·B를 나란히 분리
+- **YCbCr Parade**: Y′·Cb·Cr을 나란히 분리
+
+Vectorscope는 Cb/Cr 좌표에서 색 분포를 보여주며, 75% 색 기준 타깃과 스킨톤 방향 안내선을 함께 표시합니다.
+
+## 연결하고 사용하기
+
+### 준비
+
+- **iPadOS 16.0 이상**의 iPad
+- **Direct/IP 방식의 Remote Monitoring**을 제공하는 DaVinci Resolve 송신 환경
+- 송신 장치와 iPad가 서로 통신할 수 있는 **같은 로컬 네트워크**
+- 송신 형식의 **H.265/HEVC** 영상을 디코드할 수 있는 기기 환경
+
+앱의 연결 경로는 로컬 IPv4를 사용합니다. 클라우드 세션 코드나 TURN 중계를 통한 인터넷 연결은 지원하지 않습니다. 수신 해상도와 프레임률, 사용 가능한 HEVC 형식은 송신 설정과 iPad의 디코딩 지원에 따라 달라집니다.
+
+### 연결 순서
+
+1. Resolve에서 모니터링할 프로젝트를 열고 **Remote Monitoring의 Direct/IP 세션**을 시작합니다.
+2. iPad를 같은 네트워크에 연결하고 ResolveScopes iPad를 실행합니다.
+3. **Resolve에 연결**을 눌러 **Resolve 주소**에 송신 장치의 IPv4 주소를 입력합니다. 예: `192.168.0.10`
+4. **연결**을 누른 뒤 Resolve에서 연결 요청을 승인합니다.
+5. 영상이 들어오면 Source와 스코프가 표시됩니다. Resolve에서 영상을 재생하거나 장면을 이동하면서 확인합니다.
+
+기본 연결 포트는 `16410`입니다. 다른 포트를 사용하는 경우 `192.168.0.10:포트번호` 형식으로 입력할 수 있습니다. 마지막으로 연결을 시도한 주소는 기기에 저장됩니다.
+
+### 측정 설정 맞추기
+
+상단의 슬라이더 아이콘을 누르면 **Resolve 연결 · 측정 설정**을 열 수 있습니다.
+
+| 설정 | 역할 |
+| --- | --- |
+| **Primaries** | RGB 원색과 밝기 계산에 사용할 색공간을 선택합니다. Rec.709, P3-D65, Rec.2020, ACES AP0/AP1 등의 항목을 제공합니다. |
+| **Transfer** | 신호를 밝기로 해석할 전달함수를 선택합니다. Gamma, sRGB, Linear, PQ, HLG, ACEScc/ACEScct 등의 항목을 제공합니다. |
+| **파형 모드** | Waveform 패널의 채널 표시 방식을 선택합니다. |
+| **수치 분석** | 통계를 계산할 표본 격자의 크기를 선택합니다. |
+
+분석기는 디코드 버퍼에서 인식할 수 있는 색공간·전달함수 메타데이터를 우선 사용합니다. 해당 정보가 없거나 인식되지 않으면 선택한 설정을 사용합니다. 초기 선택값은 **Rec.709 · Gamma 2.4**입니다.
+
+설정은 수신 영상의 분석 기준을 정합니다. 송신 영상 자체를 변환하거나 Resolve의 프로젝트 색관리를 변경하지 않습니다. 송신 신호에 맞춰 설정하고, 화면 아래 **측정 조건**에서 실제 적용된 기준과 경고를 확인하세요.
+
+## 보기와 조작
+
+### 패널 배치
+
+상단의 배치 메뉴에서 작업에 맞는 구성을 선택합니다.
+
+- **균등 그리드**: 1~3열로 패널을 배치합니다. 화면에 다 들어오지 않으면 스크롤할 수 있습니다.
+- **큰 패널 + 아래 2개 / 3개 / 4개**: 선택한 패널을 위에 크게, 나머지 패널 일부를 아래에 배치합니다.
+- **큰 패널**: 위에 크게 표시할 패널을 선택합니다.
+- **기본 배치로 복원**: 다섯 종류의 패널과 2열 그리드로 돌아갑니다.
+
+가로·세로 방향과 사용 가능한 창 크기에 맞춰 배치를 조정합니다. 배치와 패널 종류는 기기에 저장됩니다.
+
+### 확대와 전체 화면
+
+| 조작 | 동작 |
+| --- | --- |
+| 패널에서 두 손가락으로 벌리기·오므리기 | 1~8배로 확대·축소 |
+| 확대 후 드래그 | 표시 영역 이동 |
+| 두 번 탭 또는 패널의 초기화 버튼 | 배율과 위치 초기화 |
+| 패널의 **Solo** 버튼 | 선택한 패널만 크게 표시 |
+| 상단의 전체 화면 버튼 | 현재 배치를 유지하며 도구 막대와 상태·통계 영역 숨기기 |
+| 전체 화면에서 한 번 탭 | **전체 화면 종료** 버튼 표시 |
+| 전체 화면에서 0.7초 이상 길게 누르기 | 기본 보기로 복귀 |
+
+Waveform, RGB Parade, Vectorscope는 패널의 크기와 확대 위치에 맞춰 GPU 플롯을 다시 그립니다. 확대는 표시 영역을 바꾸는 조작이며, 수치 통계의 분석 영역을 선택하는 기능은 아닙니다.
+
+### Hold
+
+상단의 **Hold**를 누르면 iPad에 표시된 영상과 스코프가 멈춥니다. 한 장면의 분포와 수치를 살펴본 뒤 **재개**를 누르면 최신 수신 상태로 돌아갑니다.
+
+Hold 중에도 수신과 분석은 계속됩니다. 이 조작은 Resolve의 재생을 멈추거나 제어하지 않습니다. 영상 표시와 스코프 계산은 별도로 갱신되므로, Hold는 프레임 번호를 맞춰 저장하는 캡처 기능과는 구분됩니다.
+
+앱이 백그라운드로 이동하면 연결을 해제합니다. 돌아온 뒤 다시 연결하세요. Hold 상태에서 연결이 끊기면 마지막 표시를 유지하며, 상태 영역에 연결 끊김을 표시합니다.
+
+## False Color로 밝기 구간 찾기
+
+False Color는 수신 영상의 밝기 신호 **Y′를 IRE로 환산**해 구간별로 색을 입힙니다. 패널 오른쪽의 그레이차트에서 밝기와 색 구간을 함께 확인할 수 있습니다.
+
+### TVLogic식 구간
+
+기본 표현입니다. 그레이차트를 터치하거나 드래그하면 기준 밝기를 **0~100 IRE** 사이에서 조절할 수 있습니다. 메뉴에서 색 구간의 전체 폭을 **5 / 10 / 25 IRE**로 선택합니다.
+
+초기값인 **기준 55 IRE · 폭 25 IRE**에서는 다음과 같이 표시합니다.
+
+| 신호 구간 | 표시 |
+| --- | --- |
+| 0 IRE 미만 | 초록 |
+| 40 이상~50 IRE 미만 | 청록 |
+| 50 이상~55 IRE 미만 | 분홍 |
+| 55 이상~65 IRE 미만 | 노랑 |
+| 100 IRE 이상 | 빨강 |
+| 나머지 | 밝기에 따른 회색 |
+
+기준값을 옮기면 청록·분홍·노랑 구간이 함께 이동합니다. 폭을 줄이면 더 좁은 밝기 범위를 구분할 수 있습니다. 메뉴의 **55 IRE · 폭25로 초기화**로 기본값을 복원합니다.
+
+### 다른 표현
+
+- **기존 전체**: 기본 IRE 매핑으로 어두운 영역부터 밝은 영역까지 여러 색 구간을 표시합니다.
+- **ARRI 참고**: 고정된 IRE 구간으로 암부, 중간 밝기와 하이라이트를 구분합니다. 이 표현에서 그레이차트를 조작하면 TVLogic식 구간으로 전환됩니다.
+
+이름에 사용된 TVLogic과 ARRI는 표현 방식을 설명하기 위한 참고입니다. 특정 장비의 공식 판정이나 카메라별 Log 노출 기준을 재현한다고 가정하지 않습니다. False Color는 선택한 분석 색공간에서 계산한 수신 신호의 IRE를 보여줍니다.
+
+## 화면 아래 수치 읽기
+
+하단 통계는 **수신 영상을 줄여 만든 표본 격자**에서 계산합니다.
+
+| 항목 | 의미 |
+| --- | --- |
+| **평균 / 최소 / 최대 IRE** | 표본의 Y′ 밝기 신호를 100배한 값 |
+| **최대 nits** | 색공간과 전달함수에 따라 환산한 표본의 최대 휘도 |
+| **Black %** | RGB 중 하나라도 0 미만인 표본의 비율 |
+| **White %** | RGB 중 하나라도 1 초과인 표본의 비율 |
+| **Gamut %** | RGB 중 하나라도 0~1 범위를 벗어난 표본의 비율 |
+
+Black %와 White %는 정규화한 RGB 채널 기준입니다. Y′가 0~100 IRE 밖에 있는 비율과는 다르며, Gamut %도 특정 납품 규격을 종합 판정하는 수치가 아닙니다.
+
+최대 nits는 화면의 실제 발광량을 측정한 값이 아닙니다. PQ는 10,000 nits, HLG는 1,000 nits와 시스템 감마 1.2, SDR 계열은 기준 백색 100 nits를 사용하는 계산값입니다. ACEScc·ACEScct 같은 장면 기준 신호는 절대 휘도로 해석하지 않아야 합니다.
+
+**측정 조건**을 펼치면 수신·표본 해상도, 디코드 비트 깊이와 범위, 적용된 색공간·전달함수·YCbCr 행렬, 대체 처리 경고를 확인할 수 있습니다. 현재 수신 경로에서는 프레임 타임코드를 채우지 않아 타임코드 영역에 `TC —`가 표시됩니다.
+
+### 수치 분석 크기
+
+- **320×180 · 빠름**
+- **480×270 · 실시간** — 기본값
+- **640×360 · 균형**
+- **960×540 · 정밀**
+
+위 크기를 경계로 원래 종횡비를 유지하며 축소하므로, 입력 비율에 따라 실제 표본 크기는 달라집니다. 큰 격자는 더 많은 지점을 계산하지만 처리량도 늘어납니다.
+
+이 설정은 수치 통계와 분석용 표본의 크기를 정합니다. 정상적인 GPU 경로에서 Waveform, RGB Parade, Vectorscope, False Color는 **수신 해상도의 전체 픽셀**을 사용합니다. GPU를 사용할 수 없거나 분석에 실패하면 CPU 표본 분석으로 전환하고 측정 조건에 알립니다.
+
+## 영상이 들어와 스코프가 되기까지
+
+```text
+DaVinci Resolve · Remote Monitoring Direct/IP
+                    │
+             H.265/HEVC 전송
+                    │
+          iPad · 수신 및 인증·복호화
+                    │
+          패킷 재정렬과 HEVC 프레임 조립
+                    │
+            VideoToolbox 디코드
+                    │
+          ┌─────────┴──────────┐
+          │                    │
+     Source 영상 표시      iPad 로컬 분석
+                               │
+                     ┌─────────┴─────────┐
+                     │                   │
+               Metal 전체 픽셀       CPU 표본 격자
+               스코프·False Color     수치 통계
+```
+
+1. **연결 협상**: 입력한 Resolve 주소로 접속하고, 송신 측 승인 후 영상 형식과 보안 세션을 설정합니다. JavaScriptCore는 연결 협상과 제어 메시지를 처리합니다.
+2. **영상 수신**: 네이티브 수신기가 SRTP 패킷을 인증·복호화하고 순서를 복원합니다. 누락된 패킷은 재전송을 요청하고, 필요한 경우 키프레임을 요청합니다.
+3. **영상 디코드**: 조립된 HEVC 프레임을 VideoToolbox로 디코드합니다. 수신 형식에 따라 8/10-bit, 4:2:0 또는 10-bit 4:2:2 버퍼를 요청합니다.
+4. **표시와 분석**: 디코드 영상을 Source에 표시하는 경로와 스코프를 계산하는 경로를 나눕니다. 분석이 밀리면 대기 중인 분석 프레임을 최신 프레임으로 바꿔 처리합니다.
+5. **스코프 갱신**: GPU는 수신 픽셀을 RGB로 해석해 스코프를 그리고, CPU는 축소한 표본에서 통계를 계산합니다.
+
+Source는 스코프 계산이 끝나기를 기다리지 않습니다. 영상과 스코프의 갱신 시점·프레임률이 다를 수 있으며, 하단에 각각의 fps를 표시합니다. **앱 처리 ms**는 완성된 수신 프레임부터 영상 표시 레이어에 제출할 때까지의 로컬 처리 시간입니다. 송신·네트워크·화면의 실제 표시까지 포함한 전체 지연시간은 아닙니다.
+
+### 측정 대상
+
+분석 대상은 **Remote Monitoring으로 전송되어 iPad에서 디코드된 압축 영상**입니다. Resolve 내부의 원본 Float 처리값이나 원본 미디어를 직접 읽지는 않습니다.
+
+따라서 GPU가 전체 픽셀을 사용하더라도 그 범위는 수신 영상의 해상도입니다. 압축, 색차 서브샘플링, 비트 깊이, 송신 설정이 분석 결과에 영향을 줄 수 있습니다. 표본 통계는 작은 하이라이트나 일부 픽셀의 극값을 놓칠 수 있으므로, 원본 전체 픽셀의 최종 QC 결과로 해석하지 않아야 합니다.
+
+앱은 현재 Direct/IP 영상 모니터링과 로컬 스코프 분석에 집중합니다. 파일·사진·카메라 입력, 오디오 재생, 영상 녹화·내보내기, Resolve 타임라인 원격 제어는 제공하지 않습니다.
+
+## 연결이나 표시가 원활하지 않을 때
+
+| 증상 | 확인할 내용과 다음 행동 |
+| --- | --- |
+| 연결 서버에 접근하지 못함 | Resolve에서 Direct/IP 세션을 시작했는지, 주소와 포트가 맞는지 확인합니다. 두 장치의 로컬 통신과 방화벽 설정도 확인한 뒤 다시 연결합니다. |
+| 승인 대기 후 시간 초과 | Resolve의 연결 요청을 승인합니다. 앱은 약 25초 동안 초기 연결을 기다리므로, 시간이 지나면 다시 연결합니다. |
+| 연결되었지만 영상이 나오지 않음 | 송신 형식이 H.265/HEVC인지, 해당 형식을 iPad에서 디코드할 수 있는지 확인합니다. 송신 형식을 바꾼 뒤 다시 연결합니다. |
+| 재생 중 새 프레임이 들어오지 않음 | **새 프레임 대기** 상태와 네트워크를 확인합니다. 전송이 계속되지 않으면 세션을 다시 연결합니다. |
+| 스코프와 통계의 세부 값이 다름 | 전체 픽셀 스코프와 표본 통계의 차이를 확인합니다. 필요하면 수치 분석 격자를 늘리고 측정 조건의 GPU 대체 경고를 살펴봅니다. |
+| 밝기·색 해석이 예상과 다름 | 송신 신호와 Primaries·Transfer를 비교하고, 측정 조건에 적용된 메타데이터와 범위·행렬을 확인합니다. |
+| 다른 앱을 사용하고 돌아오니 연결이 끊김 | 백그라운드 진입 시 연결을 해제하는 동작입니다. 앱에서 다시 연결합니다. |
+
+로컬 네트워크 접근을 허용하지 않았다면 iPad 설정에서 이 앱의 접근 권한을 확인하세요. 입력 영상 형식이 연결 도중 바뀌면 세션을 다시 연결해야 합니다.
+
+## 소스에서 실행하기
+
+1. 저장소를 복제합니다.
+2. `iPadCompanion/ResolveScopesPad.xcodeproj`를 Xcode에서 엽니다.
+3. **ResolveScopesPad** 스킴을 선택합니다.
+4. 실기기에서 실행할 경우 Signing & Capabilities에서 본인의 개발 팀과 서명을 설정합니다.
+5. 연결한 iPad를 실행 대상으로 선택하고 빌드·실행합니다.
+
+시뮬레이터 빌드는 다음 명령으로 확인할 수 있습니다. 실제 Remote Monitoring 수신과 디코딩 성능은 실기기에서 확인해야 합니다.
 
 ```sh
-xcodebuild -project iPadCompanion/ResolveScopesPad.xcodeproj \
-  -scheme ResolveScopesPad -configuration Release \
+xcodebuild \
+  -project iPadCompanion/ResolveScopesPad.xcodeproj \
+  -scheme ResolveScopesPad \
+  -configuration Release \
   -destination 'generic/platform=iOS Simulator' \
-  -derivedDataPath .build-ipad CODE_SIGNING_ALLOWED=NO build
+  CODE_SIGNING_ALLOWED=NO build
 ```
 
-모든 프로젝트 참조와 공용 코드를 이 저장소에 포함했습니다. 비공개 Mac 저장소나 별도 서브모듈은 필요하지 않습니다. 개인 서명 Team, 인증서, 프로비저닝 프로필과 로컬 실영상 자료는 포함하지 않습니다.
+<details>
+<summary>구현 구조</summary>
 
-## Resolve 연결
+- [앱 진입점](iPadCompanion/ResolveScopesPad/ResolveScopesPadApp.swift): 앱 생명주기와 백그라운드 연결 해제
+- [연결·분석 상태](iPadCompanion/ResolveScopesPad/CompanionModel.swift): 수신 세션, 분석 설정, Hold와 표시 갱신
+- [화면과 조작](iPadCompanion/ResolveScopesPad/CompanionScreen.swift): 패널 선택, 확대, 전체 화면, False Color 조절
+- [패널 배치](iPadCompanion/ResolveScopesPad/CompanionPanelLayout.swift): 그리드와 큰 패널 구성
+- [수신 경로](iPadCompanion/ResolveScopesPad/NativeRemote): 연결 협상, 네이티브 SRTP/RTP 수신, HEVC 디코드·표시
+- [로컬 분석](iPadCompanion/ResolveScopesPad/LocalScopeAnalyzer.swift): 버퍼 해석, 표본 통계, GPU·CPU 분석 전환
+- [GPU 입력 변환](iPadCompanion/ResolveScopesPad/LocalScopeGPURenderer.swift): 디코드 버퍼를 스코프용 RGB로 변환
+- [전체 픽셀 렌더러](Sources/ResolveScopes/Support/FullRasterScopeRenderer.swift): Waveform·Parade·Vectorscope·False Color
+- [분석 코어](Sources/ScopeCore): 색 계산, 스코프와 False Color 매핑
 
-Resolve에서 Remote Monitoring을 시작하고 같은 로컬 네트워크의 iPad에 Mac 주소를 입력합니다. 앱에서 연결한 뒤 Resolve에서 **ResolveScopes iPad** 요청을 Accept하세요. iPad의 로컬 네트워크 접근도 허용해야 합니다. Resolve 버전·에디션의 Remote Monitoring 지원이 필요합니다. 오디오는 지원하지 않습니다.
+</details>
 
-## 구조와 검증
-
-`iPadCompanion/ResolveScopesPad/NativeRemote/`는 네이티브 수신·디코드 경로와 JavaScript 제어 협상, `Sources/ScopeCore/`는 공용 연산, `Sources/ResolveScopes/Support/`의 두 파일은 공용 GPU 래스터·오버레이입니다. 후자는 공용 파일의 원래 경로이며 Mac 앱 자체는 포함하지 않습니다.
-
-```sh
-./script/test_ipad_layout.sh
-./script/test_native_media.sh
-./script/test_native_video.sh
-./script/test_local_scope_analyzer.sh
-./iPadCompanion/ResolveScopesPad/NativeRemote/Tests/run-session-test.sh
-```
-
-테스트는 macOS/Xcode에서 실행합니다. 영상 파이프라인 테스트의 합성 HEVC 생성에는 `ffmpeg`가 필요합니다. 실제 Resolve 재생, LAN 품질과 전체 송신→화면 지연은 별도 실기기 검증이 필요합니다. 원본 Float 입력과 디코드된 모니터링 영상의 측정 동등성을 보장하지 않습니다.
-
-## 로고와 라이선스
-
-[Signal Planes 원본](Branding/SignalPlanes/README.md)과 [서드파티 고지](THIRD_PARTY_NOTICES.md)를 포함합니다. 원본 앱 소스에 별도 오픈소스 라이선스를 지정하지 않았습니다. 포함된 서드파티 구성 요소에는 각각의 라이선스가 적용됩니다.
+의존 구성요소의 고지 사항은 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에서 확인할 수 있습니다.
