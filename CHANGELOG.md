@@ -1,3 +1,7 @@
+# Shared engine maintenance · 2026-10-23
+
+- Synchronized optional advanced-output/QC demand controls and sparse traversal with the Mac engine. Existing callers retain all outputs and QC by default; the iPad UI, receive transport and scope settings are unchanged. No new iPad app release or installation is required.
+
 # 1.25.0 · Scope guide readability
 
 - Strengthened 10 IRE reference lines and added distinct RGB channel boundaries with legible label backings.

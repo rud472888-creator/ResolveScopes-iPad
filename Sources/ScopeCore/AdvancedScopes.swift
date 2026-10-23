@@ -96,6 +96,18 @@ public struct FrameQCResult: Codable, Sendable {
     public init() {}
 }
 
+/// Omitted display products are not measured/rendered; requested products keep
+/// the same source/sample grid. Defaults preserve existing callers.
+public struct AdvancedScopeOutputs:OptionSet,Sendable {
+    public let rawValue:Int
+    public init(rawValue:Int) {self.rawValue=rawValue}
+    public static let satLuma=Self(rawValue:1)
+    public static let twinPeaks=Self(rawValue:2)
+    public static let spatial=Self(rawValue:4)
+    public static let focus=Self(rawValue:8)
+    public static let all:Self=[.satLuma,.twinPeaks,.spatial,.focus]
+}
+
 public struct AdvancedScopeResult: Sendable {
     public let satLuma: ScopeBitmap
     public let skinTone: ScopeBitmap
@@ -224,15 +236,15 @@ public enum AdvancedScopes {
     /// qcFrame optionally supplies a pre-LUT frame for the QC report. It is
     /// inspected using the same levels and thresholds, independently of the
     /// processed frame used for visual scopes and selection overlays.
-    public static func analyze(frame: VideoFrame, settings: ScopeSettings = ScopeSettings(), advanced a: AdvancedScopeSettings = AdvancedScopeSettings(), qcFrame: VideoFrame? = nil, selectionMask:ScopeSelectionMask? = nil, twinPeaks: TwinPeaksSettings = TwinPeaksSettings(), qcSettings:ScopeSettings?=nil) -> AdvancedScopeResult {
+    public static func analyze(frame: VideoFrame, settings: ScopeSettings = ScopeSettings(), advanced a: AdvancedScopeSettings = AdvancedScopeSettings(), qcFrame: VideoFrame? = nil, selectionMask:ScopeSelectionMask? = nil, twinPeaks: TwinPeaksSettings = TwinPeaksSettings(), qcSettings:ScopeSettings?=nil,collectQC:Bool=true,outputs:AdvancedScopeOutputs = .all) -> AdvancedScopeResult {
         let start = ProcessInfo.processInfo.systemUptime
-        var sat = AdvancedDensity(),twin = AdvancedDensity()
+        var sat = AdvancedDensity(width:outputs.contains(.satLuma) ? 512:1,height:outputs.contains(.satLuma) ? 256:1),twin = AdvancedDensity(width:outputs.contains(.twinPeaks) ? 512:1,height:outputs.contains(.twinPeaks) ? 256:1)
         var twinOutside = 0
         var qc = FrameQCResult()
         qc.receivedWidth = frame.width;qc.receivedHeight = frame.height;qc.sourceWidth = frame.sourceWidth;qc.sourceHeight = frame.sourceHeight
         qc.transportDownsampled = frame.width != frame.sourceWidth || frame.height != frame.sourceHeight
         guard frame.isValid else {
-            if let qcFrame { qc=inspectQC(frame:qcFrame,settings:qcSettings ?? settings,advanced:a);qc.usesSeparateQCFrame=true }
+            if collectQC,let qcFrame { qc=inspectQC(frame:qcFrame,settings:qcSettings ?? settings,advanced:a);qc.usesSeparateQCFrame=true }
             let empty = ScopeBitmap(width:1,height:1,rgba:[0,0,0,255])
             return AdvancedScopeResult(satLuma:sat.bitmap(gain:settings.gain),skinTone:empty,twinPeaks:twin.bitmap(gain:settings.gain),twinPeaksMode:twinPeaks.mode,twinPeaksOutsidePlotCount:0,focusPeaking:empty,skinMask:[0],focusMask:[0],maskWidth:1,maskHeight:1,spatialWaveformPoints:[],sampledPixelCount:0,skinSelectedSampleCount:0,qc:qc,sequence:frame.sequence,processingMS:(ProcessInfo.processInfo.systemUptime-start)*1000)
         }
@@ -254,24 +266,30 @@ public enum AdvancedScopes {
         var previewValid = [Bool](repeating:false,count:width*height),previewROI = previewValid
         var rowBlack = [Int](repeating:0,count:frame.height),colBlack = [Int](repeating:0,count:frame.width)
         var blackPixelCount = 0,sampleCount = 0,skinSampleCount = 0
-        var points = [SpatialWaveformPoint]();points.reserveCapacity(sampleWidth*sampleHeight)
+        var points = [SpatialWaveformPoint]();if outputs.contains(.spatial) {points.reserveCapacity(sampleWidth*sampleHeight)}
         let channelRange = advBounds(a.qcChannelMin,a.qcChannelMax,fallback:(0,1)),lumaRange = advBounds(a.qcLumaMin,a.qcLumaMax,fallback:(0,1))
         let tolerance = advClamp(a.qcTolerance,0,1,fallback:1e-7)
         let blackThreshold = advClamp(a.blackThreshold,0,1,fallback:0.01)
         let maxChroma = advClamp(a.satLumaMaxChroma,0.01,10,fallback:0.75),skinOpacity = advClamp(a.skinOverlayOpacity,0,1,fallback:0.75)
         var minLuma = Double.infinity,maxLuma = -Double.infinity,sumLuma = 0.0
+        // Overlay and sampled plots need only the union of their existing
+        // grids. Full-resolution QC remains a separate, explicitly demanded pass.
+        let inspectInPass=collectQC && qcFrame == nil
         for y in 0..<frame.height {
+            let sampledRow=y>=bounds.y0 && y<bounds.y1 && (y-bounds.y0)%yStep == 0
+            if !inspectInPass && previewY[y]<0 && !sampledRow {continue}
             for x in 0..<frame.width {
-                let i = (y*frame.width+x)*4
-                let raw = SIMD3(Double(frame.rgba[i]),Double(frame.rgba[i+1]),Double(frame.rgba[i+2]))
-                let finite = raw.x.isFinite && raw.y.isFinite && raw.z.isFinite
                 let insideROI = roiRaster.contains(x:x,y:y)
                 let admitted=selectionMask?.includes(x:x,y:y,frameWidth:frame.width,frameHeight:frame.height) ?? true
                 let sample = insideROI && admitted && (x-bounds.x0)%xStep == 0 && (y-bounds.y0)%yStep == 0
                 let qcSample = insideROI && (x-bounds.x0)%xStep == 0 && (y-bounds.y0)%yStep == 0
-                let inspect = qcFrame == nil && (a.qcFullFrame || qcSample)
+                let inspect = inspectInPass && (a.qcFullFrame || qcSample)
                 if inspect { qc.inspectedPixelCount += 1 }
                 let px = previewX[x],py = previewY[y],preview = px>=0 && py>=0
+                if !inspectInPass && !sample && !preview {continue}
+                let i=(y*frame.width+x)*4
+                let raw=SIMD3(Double(frame.rgba[i]),Double(frame.rgba[i+1]),Double(frame.rgba[i+2]))
+                let finite=raw.x.isFinite && raw.y.isFinite && raw.z.isFinite
                 if !finite {
                     if inspect { qc.invalidPixelCount += 1 }
                     if preview { let p = (py*width+px)*4;sourceBytes[p+3]=255;skinBytes[p+3]=255;if admitted { sourceBytes[p]=255;sourceBytes[p+2]=255;skinBytes[p]=255;skinBytes[p+2]=255 } }
@@ -279,7 +297,7 @@ public enum AdvancedScopes {
                 }
                 let rgb = SIMD3(ColorMath.normalize(raw.x,levels:settings.levels),ColorMath.normalize(raw.y,levels:settings.levels),ColorMath.normalize(raw.z,levels:settings.levels))
                 let luma = ColorMath.luma(rgb,space:settings.colorSpace)
-                if qcFrame == nil && max(abs(rgb.x),max(abs(rgb.y),abs(rgb.z)))<=blackThreshold { rowBlack[y]+=1;colBlack[x]+=1;blackPixelCount+=1 }
+                if inspectInPass && max(abs(rgb.x),max(abs(rgb.y),abs(rgb.z)))<=blackThreshold { rowBlack[y]+=1;colBlack[x]+=1;blackPixelCount+=1 }
                 if inspect {
                     qc.validPixelCount += 1;minLuma = min(minLuma,luma);maxLuma = max(maxLuma,luma);sumLuma += luma
                     var illegal = false
@@ -293,15 +311,17 @@ public enum AdvancedScopes {
                 }
                 if sample {
                     sampleCount += 1
-                    let chroma = ColorMath.chroma(rgb,space:settings.colorSpace)
-                    let color = SIMD3(Float(advClamp(rgb.x)*0.8+0.2),Float(advClamp(rgb.y)*0.8+0.2),Float(advClamp(rgb.z)*0.8+0.2))
-                    sat.add(SIMD2(luma,hypot(chroma.x,chroma.y)/maxChroma),color:color)
-                    if let pair = TwinPeaks.coordinates(normalizedRGB:rgb,space:settings.colorSpace,mode:twinPeaks.mode) {
+                    if outputs.contains(.satLuma) {
+                        let chroma=ColorMath.chroma(rgb,space:settings.colorSpace)
+                        let color=SIMD3(Float(advClamp(rgb.x)*0.8+0.2),Float(advClamp(rgb.y)*0.8+0.2),Float(advClamp(rgb.z)*0.8+0.2))
+                        sat.add(SIMD2(luma,hypot(chroma.x,chroma.y)/maxChroma),color:color)
+                    }
+                    if outputs.contains(.twinPeaks),let pair = TwinPeaks.coordinates(normalizedRGB:rgb,space:settings.colorSpace,mode:twinPeaks.mode) {
                         if pair.outsidePlot { twinOutside += 1 }
                         twin.add(pair.left,color:SIMD3(1,0.6,0.3));twin.add(pair.right,color:SIMD3(0.3,0.7,1))
                     }
                     if skinQualification(rgb,settings:settings,advanced:a).selected { skinSampleCount += 1 }
-                    points.append(SpatialWaveformPoint(position:SIMD3(Float(Double(x)/Double(max(1,frame.width-1))),Float(Double(y)/Double(max(1,frame.height-1))),advFloat(luma)),color:SIMD3(advFloat(rgb.x),advFloat(rgb.y),advFloat(rgb.z))))
+                    if outputs.contains(.spatial) {points.append(SpatialWaveformPoint(position:SIMD3(Float(Double(x)/Double(max(1,frame.width-1))),Float(Double(y)/Double(max(1,frame.height-1))),advFloat(luma)),color:SIMD3(advFloat(rgb.x),advFloat(rgb.y),advFloat(rgb.z))))}
                 }
                 if preview {
                     let p = py*width+px,o = p*4
@@ -321,17 +341,17 @@ public enum AdvancedScopes {
                 }
             }
         }
-        if let qcFrame {
+        if collectQC,let qcFrame {
             qc = inspectQC(frame:qcFrame,settings:qcSettings ?? settings,advanced:a)
             qc.usesSeparateQCFrame = true
-        } else {
+        } else if collectQC {
             if qc.validPixelCount>0 { qc.minLuma=minLuma;qc.maxLuma=maxLuma;qc.meanLuma=sumLuma/Double(qc.validPixelCount) }
             qc.isFullReceivedFrame = a.qcFullFrame && qc.inspectedPixelCount == frame.width*frame.height
             attachBorders(to:&qc,frame:frame,rows:rowBlack,cols:colBlack,blackPixelCount:blackPixelCount,advanced:a)
         }
         var focusBytes = sourceBytes
         let threshold = advClamp(a.focusThreshold,0,4,fallback:0.1),focusOpacity = advClamp(a.focusOpacity,0,1,fallback:0.85)
-        if width>=3 && height>=3 {
+        if outputs.contains(.focus),width>=3 && height>=3 {
             for y in 1..<(height-1) { for x in 1..<(width-1) {
                 let p = y*width+x
                 guard previewROI[p] else { continue }
